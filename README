@@ -1,2 +1,27 @@
 VLSI Design Automation project
 
+Usage : 
+This Makefile work will FMbench. make sure you have FMbench.net in the same directory. 
+
+make clean
+make all
+make distclean
+
+
+Command Line :
+make FM
+./FM FMbench.net <balFactor> 
+
+
+Program Change :
+FMpartition.cpp 
+	1) uncomment the following line and adjust 5 to a suitable number. And the range for the balance criteria is changed. 
+	delta = (delta >> 5);
+
+FM.cpp 
+	1) modify the folloing line to the line below it. And you can always choose 50 as balFactor in the command line parameter. 
+
+	ex.solutionPass( 100 - balFactor, "no such file");
+	------
+	ex.solutionPass( balFactor, "no such file");
+

@@ -103,7 +103,7 @@ int FMpartition::readfile(string fname){
 		}
 	}
 
-	initComputeGeneralArea(balFactor);
+//	initComputeGeneralArea( balFactor );
 //	cout << "total area is: " << totalArea << endl;
 
 //	cout << "net connection" << endl;
@@ -142,16 +142,17 @@ int FMpartition::readfile(string fname){
 	return 0;
 }
 
-void FMpartition::initComputeGeneralArea (int  ) {
-	goldCutArea = balFactor * totalArea / 100;
+void FMpartition::initComputeGeneralArea (int balFac ) {
+	goldCutArea = (int) ((double) (balFac * totalArea) / (double) 100 );
 	pointDeltaArea = 1;
-	if ((balFactor * totalArea) == (goldCutArea * 100)){
+	if (((balFac * (totalArea % 100))%100) == 0){
+		// potential overflow problem
 		pointDeltaArea = 0;
 	}
-	otherCutArea = totalArea - goldCutArea - pointDeltaArea ;	
-	parLowArea = goldCutArea - stepArea;
+	//otherCutArea = totalArea - goldCutArea - pointDeltaArea ;	
+	//parLowArea = goldCutArea - stepArea;
 //	parLowArea = (goldCutArea >> 1);
-	parHighArea = totalArea - parLowArea;
+	//parHighArea = totalArea - parLowArea;
 
 }
 void FMpartition::updateGroup(){
@@ -351,9 +352,12 @@ int FMpartition::initPartition(int factor){
 
 int FMpartition::calAreaLimit (int area){
 	//int otherCutArea = totalArea - goldCutArea ;
-	int thre = ((area << 1) > totalArea) ? (otherCutArea ) : goldCutArea ;
-	return (area > thre) ? ( area - thre - pointDeltaArea ) : ( thre - area );
-	
+
+//	int thre = ((area << 1) > totalArea) ? (otherCutArea ) : goldCutArea ;
+//	return (area > thre) ? ( area - thre - pointDeltaArea ) : ( thre - area );
+
+	return (area - goldCutArea)> 0 ? (area - goldCutArea): (goldCutArea - area);
+
 /*	int l = area - goldCutArea;
 	l = (l>0)? l : (0-l); 
 	int h = totalArea - goldCutArea - area;
@@ -1098,10 +1102,24 @@ int FMpartition::restorePartition(){
 //	cout << "stepArea: " << stepArea << " lastArea: " <<lastArea << " lastCutSize: " << lastCutSize <<endl;
 //	cout << "lowDeltaArea: "<< lowDeltaArea <<" tokenArea: "<< tokenArea << " lowCutSize: "<< lowCutSize <<endl;
 
-	if ((lowDeltaArea <= stepArea) && (lastCutSize == lowCutSize) && ( (lastArea == tokenArea) || ((lastArea + tokenArea) == totalArea))){
+	//if ((lowDeltaArea <= stepArea) && (lastCutSize == lowCutSize) && ( (lastArea == tokenArea) || ((lastArea + tokenArea) == totalArea))){
+	if ((lastCutSize == lowCutSize) && ( lastArea == tokenArea )){
 //		cout << "Final Solution is" << endl;
-		exitVal = 2;
-	}
+
+		if (lowDeltaArea <= stepArea) {
+			exitVal = 2;
+		} else {
+			cout << "Doesn't get a solution " <<endl;
+			cutSize = lowCutSize;
+			return 3;
+			//exit (2);
+		}
+	} 
+   
+	//else if (lastCutSize <= lowCutSize) {
+	//	cout << "Doesn't get a solution " <<endl;
+	//	exit (2);
+	//}
 	lastArea = tokenArea;
 	lastCutSize = lowCutSize;
 
@@ -1135,9 +1153,54 @@ int FMpartition::restorePartition(){
 	return exitVal;
 }
 
+
+void FMpartition::computeGainLoop () {
+
+
+    int i = segNum;
+	int delta = ((totalArea - goldCutArea ) < goldCutArea ) ?  (totalArea - goldCutArea): (goldCutArea) ;
+//	delta = (delta >> 5);
+	int kMax =  (delta ) / (segNum ) ;
+	//int lo = goldCutArea - 2;
+	//int hi = goldCutArea + 2;
+	//int lo = goldCutArea - stepArea ;
+	//int hi = goldCutArea + stepArea ;
+	int lo = goldCutArea - stepArea ;
+	int hi = goldCutArea + stepArea ;
+	parLowArea = lo - kMax * i;
+	parHighArea = hi +  kMax * i ;
+	while (--i){
+		//cout << "init Pass: " << i  << " cutSize:" << cutSize << endl;
+		//if ( i == 14066 ) {
+		//	outputStatus("saveme.core");
+		//}
+//		printGroup();
+//		printGain();
+//		printCellGain(0);
+		//long int k = goldCutArea * i / (segNum * stepArea) + 1 ;
+		//int k = (int) (kMax * (double) ( i ) ) ;
+		//parLowArea = lo - k ;
+		//parHighArea = hi + k ;
+		parLowArea += kMax ;
+		parHighArea -= kMax ;
+		//cout << parLowArea << " " << parHighArea << endl;
+		//cout << k << " " << segNum - i << " " << cutSize << " " << calAreaLimit (groupAarea) << endl;
+		cout << segNum - i << " " << cutSize << " " << calAreaLimit (groupAarea) << endl;
+		//parHighArea = totalArea - parLowArea;
+        if ( computeGainOnMove()) {
+            break;
+        }
+		//if (cutSize == 0 ) {
+			//printGroup();
+		//	exit (123);
+		//}
+    }
+
+}
+
 int FMpartition::initPass(int factor,string fname){
 	clearRecord();
-//	initComputeGeneralArea(factor);
+	initComputeGeneralArea(balFactor);
 
 	if (factor == 0) {
 		restoreInitPartition(fname);
@@ -1154,8 +1217,12 @@ int FMpartition::initPass(int factor,string fname){
 	lastCutSize = cutSize;
 	storeRecord(groupAarea, 0, cutSize);
 
-    int i = segNum;
-    while (--i){
+	computeGainLoop();
+/*    int i = segNum;
+	int delta = ((goldCutArea << 1) > totalArea ) ?  (totalArea - goldCutArea): (goldCutArea) ;
+	double kMax = (double) (delta ) / (double) (segNum ) ;
+	
+	while (--i){
 		//cout << "init Pass: " << i  << " cutSize:" << cutSize << endl;
 		//if ( i == 14066 ) {
 		//	outputStatus("saveme.core");
@@ -1163,9 +1230,14 @@ int FMpartition::initPass(int factor,string fname){
 //		printGroup();
 //		printGain();
 //		printCellGain(0);
+		//long int k = goldCutArea * i / (segNum * stepArea) + 1 ;
+		int k = (int) (kMax * (double) ( i ) ) ;
+		parLowArea = goldCutArea - stepArea - k ;
+		parHighArea = goldCutArea + stepArea + k ;
+		//cout << parLowArea << " " << parHighArea << endl;
+		//cout << k << " " << segNum - i << " " << cutSize << " " << calAreaLimit (groupAarea) << endl;
 		cout << segNum - i << " " << cutSize << " " << calAreaLimit (groupAarea) << endl;
-		parLowArea = stepArea;
-		parHighArea = totalArea - parLowArea;
+		//parHighArea = totalArea - parLowArea;
         if ( computeGainOnMove()) {
             break;
         }
@@ -1174,6 +1246,7 @@ int FMpartition::initPass(int factor,string fname){
 		//	exit (123);
 		//}
     }
+	*/
 //	cout << endl;
 /*
 	// continue current iteration.
@@ -1227,23 +1300,34 @@ int FMpartition::onePass(int stage){
 	storeRecord(groupAarea, 0, cutSize);
 
 //	cout << "After compute gain "<<endl;
-
-
+	computeGainLoop();
+/*
 	// continue current iteration.
 	int i = segNum;
+//	int kMax =  goldCutArea / stepArea - 1;
+	int delta = ((goldCutArea << 1) > totalArea ) ?  (totalArea - goldCutArea): (goldCutArea) ;
+	double kMax = (double) (delta) / (double) (segNum ) ;
 	while (--i){
 //		cout << "one Pass: " << i << " cutSize:" << cutSize << endl;
+		//int k = kMax * i / segNum + 1;
+		//long int k = goldCutArea * i / (segNum * stepArea) + 1 ;
+		int k = (int) (kMax * (double) ( i) )  ;
+		parLowArea = goldCutArea - stepArea -k ;
+		parHighArea = goldCutArea + stepArea + k ;
+		//cout << parLowArea << " " << parHighArea << endl;
+		//cout << k << " " << segNum - i << " " << cutSize << " " << calAreaLimit (groupAarea) << endl; 
 		cout << segNum - i << " " << cutSize << " " << calAreaLimit (groupAarea) << endl; 
-		parLowArea = (goldCutArea - stage * stepArea) ;
+		//parLowArea = (goldCutArea - stage * stepArea) ;
 		//if (parLowArea <= 0 ) {
 		//	cout << "Error " << endl;
 		//	parLowArea = stepArea;
 		//}	
-		parHighArea = totalArea - parLowArea;
+		//parHighArea = totalArea - parLowArea;
 		if ( computeGainOnMove()) {
 			break;
 		}
 	}
+	*/
 //	cout << endl;
 	/*
 	for (int i=1; i<= segNum; ++i) {
@@ -1281,17 +1365,19 @@ int FMpartition::onePass(int stage){
 }
 
 
+
 int FMpartition::solutionPass(int factor,string res){
 	int exitCode = 0;
-	int stage = ((goldCutArea / stepArea) >> 1);
+	//int stage = ((goldCutArea / stepArea) >> 1);
 	//stage = 1; 
 	initPass(factor,res);
 	while(exitCode == 0){
-		stage = (stage >>2);
-		if (stage < 1) {
-			stage = 1;
-		}
-		exitCode = onePass(stage);
+		//stage = (stage >>2);
+		//if (stage < 1) {
+		//	stage = 1;
+		//}
+		//exitCode = onePass(stage);
+		exitCode = onePass(0);
 	}
 	return 0;
 }

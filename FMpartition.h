@@ -19,7 +19,8 @@ using namespace std;
 #define FSA_CLR_TAG 0xfd
 #define FSB_CLR_TAG 0xfe
 
-#define BAL_FACTOR 42 
+//#define BAL_FACTOR 42 
+//#define BAL_FACTOR (100-42) 
 
 typedef short cint ;
 
@@ -171,14 +172,13 @@ private:
 	vector<net*> netLink;
 
 	int totalArea;
-	int balFactor;
 	int groupAarea;
 	//int groupBarea;
 	int stepArea;
 	int parLowArea;
 	int parHighArea;
 	int goldCutArea;
-	int otherCutArea;
+//	int otherCutArea;
 	int pointDeltaArea;
 
 	int cellDeg; 
@@ -201,12 +201,13 @@ private:
 	void updateGroup();
 public:
 	int cutSize;
+	int balFactor;
 	list< cell * > groupA;
 	list< cell * > groupB;
 	bucket *cal;
 
 	FMpartition(){
-		balFactor = BAL_FACTOR;
+		//balFactor = BAL_FACTOR;
 	};
 	~FMpartition(){ 
 		delete [] netArray;
@@ -215,7 +216,7 @@ public:
 	};
 	int readfile(string fname);
 	void restoreInitPartition(string fname);
-	void initComputeGeneralArea(int newBalFactor);
+	void initComputeGeneralArea(int balFac);
 	int initPartition(int factor);
 	int restorePartition();
 	int initComputeGain();
@@ -226,6 +227,7 @@ public:
 	int computeGainOnMove_rough();
 	int computeGainOnMove_slow();
 	int computeGainOnMove();
+	void computeGainLoop ();
 	int initPass(int factor, string fname);
 	int onePass(int stage);
 	int solutionPass(int factor, string fname);

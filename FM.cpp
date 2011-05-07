@@ -8,6 +8,7 @@ using namespace std;
 //#define _SLOW_
 //#define _ROUGH_
 //#define _FAST_
+#define PARTITION_FACTOR 42 
 
 int main(int argc, char * argv[]) {
 //	cout << "Size of Int:  " << sizeof (int) << endl;
@@ -42,18 +43,24 @@ int main(int argc, char * argv[]) {
 //	ex.readfile("FMbench2.net");
 	ex.readfile(infile);
 	if (balFactor != 0) {
+		ex.balFactor = PARTITION_FACTOR ;
 		ex.solutionPass(balFactor, "no such file");
+
 		int balSolCutSize = ex.cutSize;
 		cout << "cutSize is " << ex.cutSize << endl;
 		ex.outputResult(outFile);
 
-		ex.solutionPass(100-balFactor, "no such file");
+		ex.balFactor = 100 - PARTITION_FACTOR ;
+		ex.solutionPass( 100 - balFactor, "no such file");
 		cout << "cutSize is " << ex.cutSize << endl;
 		int revBalSolCutSize = ex.cutSize;
 		if (balSolCutSize > revBalSolCutSize) {
 			remove (outFile.c_str());
 			ex.outputResult(outFile);
 		}
+
+//		ex.outputResult(outFile);
+//		cout << "cutSize is " << ex.cutSize << endl;
 	} else {
 		ex.solutionPass(0, "backup.res");
 	}
